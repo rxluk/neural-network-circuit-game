@@ -1,0 +1,66 @@
+{
+  "pista": {
+    "centro_x": 7,
+    "centro_y": 5,
+    "metade_reta": 3.5,
+    "raio_externo": 2.8,
+    "raio_interno": 1.4
+  },
+  "linha_largada": {
+    "x": 5.5,
+    "y": 3,
+    "largura": 1.4,
+    "altura": 0.1,
+    "angulo": 90,
+    "num_zebras": 14
+  },
+  "linha_chegada": {
+    "x": 5.0,
+    "y": 3,
+    "largura": 1.4,
+    "altura": 0.2,
+    "angulo": 90,
+    "num_zebras": 14
+  },
+  "carros": {
+    "angulo_inicial": 0.0,
+    "velocidade_inicial": 0.0,
+    "velocidade_min": 0.01,
+    "velocidade_max": 0.3,
+    "angulo_virada_max": 8,
+    "tamanho": 0.12,
+    "cor_normal": "#333333",
+    "cor_melhor": "#33FF00",
+    "cor_morto": "#95a5a6"
+  },
+  "deteccao_volta": {
+    "afastamento_minimo_da_chegada": 3.5
+  },
+  "simulacao": {
+    "populacao": 60,
+    "max_frames_tentativa": 6000,
+    "voltas_objetivo": 50,
+    "fps_interval_ms": 5,
+    "passos_por_frame": 1,
+    "top_sobreviventes": 5,
+    "novos_aleatorios_por_geracao": 3,
+    "frames_limite_progresso": 150,
+    "afastamento_minimo_progresso": 2.0
+  },
+  "recompensas": {
+    "peso_centro":          3.0,
+    "peso_velocidade":      4.0,
+    "recompensa_volta":     800.0,
+    "bonus_volta_rapida":   600.0,
+    "bonus_melhoria_por_frame": 8.0,
+    "penalidade_colisao":   400.0,
+    "penalidade_devagar":   0.05,
+    "velocidade_lenta_limiar": 0.05,
+    "penalidade_contramao": 2.0,
+    "contramao_limiar":     0.0
+  },
+  "visualizacao": {
+    "mostrar_sensores": false,
+    "cores_sensores": ["#e74c3c", "#f39c12", "#2ecc71", "#f39c12", "#e74c3c"]
+  }
+}
