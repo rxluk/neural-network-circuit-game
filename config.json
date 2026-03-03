@@ -1,66 +1,90 @@
 {
-  "pista": {
-    "centro_x": 7,
-    "centro_y": 5,
-    "metade_reta": 3.5,
-    "raio_externo": 2.8,
-    "raio_interno": 1.4
-  },
-  "linha_largada": {
-    "x": 5.5,
-    "y": 3,
-    "largura": 1.4,
-    "altura": 0.1,
-    "angulo": 90,
-    "num_zebras": 14
-  },
-  "linha_chegada": {
-    "x": 5.0,
-    "y": 3,
-    "largura": 1.4,
-    "altura": 0.2,
-    "angulo": 90,
-    "num_zebras": 14
-  },
   "carros": {
     "angulo_inicial": 0.0,
-    "velocidade_inicial": 0.0,
-    "velocidade_min": 0.01,
-    "velocidade_max": 0.3,
-    "angulo_virada_max": 8,
-    "tamanho": 0.12,
-    "cor_normal": "#333333",
-    "cor_melhor": "#33FF00",
-    "cor_morto": "#95a5a6"
+    "velocidade_inicial_pct": 0,
+    "velocidade_max": 1,
+    "passo_velocidade": 0.025,
+    "angulo_virada_max": 12,
+    "tamanho": 0.30,
+    "morto_tamanho": 20,
+    "morto_espessura": 2
   },
   "deteccao_volta": {
-    "afastamento_minimo_da_chegada": 3.5
+    "afastamento_minimo_da_chegada": 5.0,
+    "fracao_minima_volta": 0.7
   },
   "simulacao": {
-    "populacao": 60,
-    "max_frames_tentativa": 6000,
-    "voltas_objetivo": 50,
-    "fps_interval_ms": 5,
+    "populacao": 80,
+    "voltas_objetivo": 10,
     "passos_por_frame": 1,
-    "top_sobreviventes": 5,
-    "novos_aleatorios_por_geracao": 3,
-    "frames_limite_progresso": 150,
-    "afastamento_minimo_progresso": 2.0
+    "top_sobreviventes": 10,
+    "novos_aleatorios_por_geracao": 10,
+    "frames_sem_progresso": 40,
+    "cl_min_progresso_por_janela": 10
   },
   "recompensas": {
-    "peso_centro":          3.0,
-    "peso_velocidade":      4.0,
-    "recompensa_volta":     800.0,
-    "bonus_volta_rapida":   600.0,
-    "bonus_melhoria_por_frame": 8.0,
-    "penalidade_colisao":   400.0,
-    "penalidade_devagar":   0.05,
-    "velocidade_lenta_limiar": 0.05,
-    "penalidade_contramao": 2.0,
-    "contramao_limiar":     0.0
+    "peso_centro": 3.0,
+    "peso_velocidade": 8.0,
+    "peso_progresso_circuito": 15.0,
+    "fator_velocidade_progresso": 0.8,
+    "recompensa_volta": 1000.0,
+    "bonus_volta_rapida": 800.0,
+    "target_frames_volta": 200,
+    "fator_bonus_recorde": 2.0
+  },
+  "penalidades": {
+    "penalidade_colisao": 800.0,
+    "janela_perda_continua": 40,
+    "perda_continua_limiar_pre_volta": -40.0,
+    "perda_continua_limiar_pos_volta": -25.0,
+    "score_minimo_kill": 0,
+    "penalidade_contramao": 12.0,
+    "contramao_limiar": 0.0,
+    "penalidade_parede_proxima": 4.0,
+    "peso_devagar_pos_volta": 4.0,
+    "agravante_por_volta": 2.0,
+    "limiar_devagar_inicial": 0.2,
+    "incremento_limiar_devagar": 0.05
   },
   "visualizacao": {
-    "mostrar_sensores": false,
-    "cores_sensores": ["#e74c3c", "#f39c12", "#2ecc71", "#f39c12", "#e74c3c"]
+    "mostrar_sensores": false
+  },
+  "cards": {
+    "wspace": 0.15,
+    "size_grafico": 1.7,
+    "size_info": 0.72,
+    "size_comandos": 0.63,
+    "size_eventos": 0.8,
+    "size_rede_neural": 1.0
+  },
+  "cores_ui": {
+    "branco": "#e8ecf1",
+    "preto": "#0a0d12",
+    "verde": "#7BFF00",
+    "amarelo": "#c9a84c",
+    "vermelho": "#FD2C2C",
+    "cinza_inativo": "#2e3a47",
+    "cinza_medio": "#5a6a7a",
+    "texto_principal": "#dce3ea",
+    "texto_secundario": "#8fa0b0",
+    "texto_terciario": "#8fa0b0",
+    "cor_grama": "#0d1520",
+    "cor_asfalto": "#243040",
+    "cor_card": "#272B30",
+    "cor_morto_scatter": "#FD2C2C",
+    "cor_normal": "#488E97",
+    "cor_melhor": "#7BFF00",
+    "cor_ponto_controle": "#c9a84c",
+    "cores_sensores": ["#c05c5c", "#c9a84c", "#4db389"],
+    "editor_fundo": "#0d1520",
+    "editor_grama": "#0d1520",
+    "editor_tick": "#5a6a7a",
+    "btn_salvar": "#8fa0b0",
+    "btn_salvar_hover": "#7BFF00",
+    "btn_desfazer": "#8fa0b0",
+    "btn_desfazer_hover": "#FD2C2C",
+    "btn_limpar": "#8fa0b0",
+    "btn_limpar_hover": "#FD2C2C",
+    "btn_slider": "#8fa0b0"
   }
 }
