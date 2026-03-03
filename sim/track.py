@@ -3,10 +3,29 @@ Track geometry, SDF lookup, car physics and simulation entities.
 No UI/rendering code here — pure simulation logic.
 """
 
+import sys
 import numpy as np
 import json
 import os
 from collections import deque
+
+
+# ---------------------------------------------------------------------------
+# RESOURCE PATH — works both in dev and in a PyInstaller frozen build
+# ---------------------------------------------------------------------------
+
+def _resource_path(relative_path: str) -> str:
+    """Return absolute path to a bundled resource.
+
+    When the app is frozen by PyInstaller (--onefile or --onedir),
+    ``sys._MEIPASS`` points to the extraction directory where data files
+    are placed.  In a normal Python environment the project root is used.
+    """
+    if hasattr(sys, '_MEIPASS'):
+        base = sys._MEIPASS
+    else:
+        base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base, relative_path)
 
 
 # ---------------------------------------------------------------------------
@@ -15,7 +34,7 @@ from collections import deque
 
 def carregar_config():
     """Carrega configurações do arquivo config.json"""
-    config_path = os.path.join(os.path.dirname(__file__), '..', 'config.json')
+    config_path = _resource_path('config.json')
     with open(config_path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
@@ -28,7 +47,7 @@ _COR = CONFIG['cores_ui']
 # GEOMETRIA DO CIRCUITO — lida exclusivamente de pista.json
 # ---------------------------------------------------------------------------
 
-_pista_json_path = os.path.join(os.path.dirname(__file__), '..', 'pista.json')
+_pista_json_path = _resource_path('pista.json')
 with open(_pista_json_path, 'r', encoding='utf-8') as _f:
     _pj = json.load(_f)
 

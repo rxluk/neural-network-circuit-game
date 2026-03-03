@@ -1,4 +1,4 @@
-# neural-network-circuit-game
+# Neural Network Circuit Game
 Neuroevolution simulation where a population of AI-controlled cars learns to drive a custom circuit through a genetic algorithm.
 
 ![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python&logoColor=white)
