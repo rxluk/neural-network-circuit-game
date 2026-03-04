@@ -1,7 +1,5 @@
-"""
-Track geometry, SDF lookup, car physics and simulation entities.
-No UI/rendering code here — pure simulation logic.
-"""
+# Geometria do circuito, SDF, fisica dos carros e entidades da simulação.
+# Este módulo não tem nenhuma dependência de UI ou renderização.
 
 import sys
 import numpy as np
@@ -10,16 +8,9 @@ import os
 from collections import deque
 
 
-# ---------------------------------------------------------------------------
-# RESOURCE PATH — works both in dev and in a PyInstaller frozen build
-# ---------------------------------------------------------------------------
-
 def _resource_path(relative_path: str) -> str:
-    """Return absolute path to a bundled resource.
-
-    When the app is frozen by PyInstaller (--onefile or --onedir),
-    ``sys._MEIPASS`` points to the extraction directory where data files
-    are placed.  In a normal Python environment the project root is used.
+    """Retorna o caminho absoluto de um arquivo de recurso.
+    Funciona tanto no ambiente de desenvolvimento quanto em builds PyInstaller.
     """
     if hasattr(sys, '_MEIPASS'):
         base = sys._MEIPASS
@@ -27,10 +18,6 @@ def _resource_path(relative_path: str) -> str:
         base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     return os.path.join(base, relative_path)
 
-
-# ---------------------------------------------------------------------------
-# CONFIG
-# ---------------------------------------------------------------------------
 
 def carregar_config():
     """Carrega configurações do arquivo config.json"""
@@ -43,16 +30,14 @@ CONFIG = carregar_config()
 _COR = CONFIG['cores_ui']
 
 
-# ---------------------------------------------------------------------------
-# GEOMETRIA DO CIRCUITO — lida exclusivamente de pista.json
-# ---------------------------------------------------------------------------
+# --- Geometria do circuito (carregada de pista.json) ---
 
 _pista_json_path = _resource_path('pista.json')
 with open(_pista_json_path, 'r', encoding='utf-8') as _f:
     _pj = json.load(_f)
 
 _CTRL_CIRCUITO = np.array(_pj['pontos_controle'])
-_NOME_PISTA    = _pj.get('nome', 'Track')
+_NOME_PISTA = _pj.get('nome', 'Track')
 CONFIG.setdefault('pista', {})['largura_pista'] = _pj['largura_pista']
 
 _larg = _pj['largada']
@@ -112,9 +97,7 @@ _TRACK_XLIM = (float(_CL_X.min() - _PAD_X), float(_CL_X.max() + _PAD_X))
 _TRACK_YLIM = (float(_CL_Y.min() - _PAD_Y), float(_CL_Y.max() + _PAD_Y))
 
 
-# ---------------------------------------------------------------------------
-# SDF (Signed Distance Field) — grade pré-computada O(1) para inside-track
-# ---------------------------------------------------------------------------
+# --- SDF (Signed Distance Field) — grade pré-computada para consulta O(1) ---
 
 def _build_sdf(res: float = 0.08) -> tuple:
     pad = 3.0
@@ -161,12 +144,12 @@ def ponto_dentro_pista(x: float, y: float) -> bool:
 
 def _multiponto_dentro_pista(xs_arr: np.ndarray, ys_arr: np.ndarray) -> np.ndarray:
     """Versão vetorizada: consulta SDF para arrays de pontos. Retorna bool array."""
-    hw2   = np.float32((CONFIG['pista']['largura_pista'] / 2.0) ** 2)
-    xi    = ((xs_arr - _SDF_XMIN) / _SDF_RES).astype(np.int32)
-    yi    = ((ys_arr - _SDF_YMIN) / _SDF_RES).astype(np.int32)
-    H, W  = _SDF_GRID.shape
+    hw2 = np.float32((CONFIG['pista']['largura_pista'] / 2.0) ** 2)
+    xi = ((xs_arr - _SDF_XMIN) / _SDF_RES).astype(np.int32)
+    yi = ((ys_arr - _SDF_YMIN) / _SDF_RES).astype(np.int32)
+    H, W = _SDF_GRID.shape
     valid = (xi >= 0) & (yi >= 0) & (xi < W) & (yi < H)
-    d2    = np.full(len(xs_arr), np.inf, dtype=np.float32)
+    d2 = np.full(len(xs_arr), np.inf, dtype=np.float32)
     d2[valid] = _SDF_GRID[yi[valid], xi[valid]]
     return d2 <= hw2
 
@@ -193,7 +176,7 @@ def gerar_contornos_pista():
     n  = len(_CENTERLINE)
     tx = np.zeros(n);  ty = np.zeros(n)
     for i in range(n):
-        d   = _CENTERLINE[(i + 1) % n] - _CENTERLINE[(i - 1) % n]
+        d = _CENTERLINE[(i + 1) % n] - _CENTERLINE[(i - 1) % n]
         mag = np.sqrt(d[0]**2 + d[1]**2)
         if mag > 1e-12:
             tx[i], ty[i] = d[0] / mag, d[1] / mag
@@ -208,9 +191,9 @@ def gerar_contornos_pista():
 
 def calcular_posicao_inicial_carro(indice, total_carros):
     """Calcula posição inicial do carro dentro da linha de largada."""
-    linha        = CONFIG['linha_largada']
-    x_centro     = linha['x']
-    y_centro     = linha['y']
+    linha = CONFIG['linha_largada']
+    x_centro = linha['x']
+    y_centro = linha['y']
     largura_util = linha['largura'] * 0.8
 
     if total_carros == 1:
@@ -230,9 +213,9 @@ def calcular_posicao_inicial_carro(indice, total_carros):
 
 def cruza_linha_chegada(x0, y0, x1, y1):
     """Retorna True se o segmento (x0,y0)→(x1,y1) cruza a linha de chegada."""
-    linha        = CONFIG['linha_chegada']
-    cx, cy       = linha['x'], linha['y']
-    rot          = -np.radians(linha['angulo'])
+    linha = CONFIG['linha_chegada']
+    cx, cy = linha['x'], linha['y']
+    rot = -np.radians(linha['angulo'])
     cos_r, sin_r = np.cos(rot), np.sin(rot)
 
     def _rot(px, py):
@@ -245,72 +228,68 @@ def cruza_linha_chegada(x0, y0, x1, y1):
     if y0r * y1r > 0 or y0r == y1r:
         return False
 
-    t      = y0r / (y0r - y1r)
+    t = y0r / (y0r - y1r)
     x_cross = x0r + t * (x1r - x0r)
     return bool(abs(x_cross) <= linha['largura'] / 2)
 
 
-# ---------------------------------------------------------------------------
-# ENTIDADE: Carrinho controlado por IA
-# ---------------------------------------------------------------------------
-
 class CarrinhoIA:
     """Carrinho controlado por rede neural."""
 
+    # Ângulos dos 7 sensores de distância (graus relativos à frente do carro)
+    _SENSOR_OFFSETS = np.array([-90., -45., -22.5, 0., 22.5, 45., 90.], dtype=np.float32)
+
     def __init__(self, indice=0, total_carros=1):
-        x, y, angulo      = calcular_posicao_inicial_carro(indice, total_carros)
-        self.x             = x
-        self.y             = y
-        self.velocidade    = 0.0
-        self.angulo        = angulo
-        self.vivo          = True
-        self.tempo_vivo    = 0
-        self.trajetoria_x  = []
-        self.trajetoria_y  = []
-        self.voltas_completas  = 0
+        x, y, angulo = calcular_posicao_inicial_carro(indice, total_carros)
+        self.x = x
+        self.y = y
+        self.velocidade = 0.0
+        self.angulo = angulo
+        self.vivo = True
+        self.tempo_vivo = 0
+        self.trajetoria_x = []
+        self.trajetoria_y = []
+        self.voltas_completas = 0
         self.frame_inicio_volta = 0
         self.melhor_tempo_volta = None
-        self.velocidade_total   = 0.0
-        self.pontos_acumulados  = 0.0
-        self.indice_carro       = indice
-        self.total_carros       = total_carros
-        self.motivo_morte       = None
+        self.velocidade_total = 0.0
+        self.pontos_acumulados = 0.0
+        self.indice_carro = indice
+        self.total_carros = total_carros
+        self.motivo_morte = None
 
     def reset(self):
-        """Recomeça a tentativa."""
-        x, y, angulo          = calcular_posicao_inicial_carro(self.indice_carro, self.total_carros)
-        self.x                 = x
-        self.y                 = y
-        self.velocidade        = (CONFIG['carros']['velocidade_max']
-                                  * CONFIG['carros']['velocidade_inicial_pct'] / 100.0)
-        self.angulo            = angulo
-        self.vivo              = True
-        self.tempo_vivo        = 0
-        self.trajetoria_x      = [self.x]
-        self.trajetoria_y      = [self.y]
-        self.voltas_completas  = 0
+        x, y, angulo = calcular_posicao_inicial_carro(self.indice_carro, self.total_carros)
+        self.x = x
+        self.y = y
+        self.velocidade = (CONFIG['carros']['velocidade_max']
+                           * CONFIG['carros']['velocidade_inicial_pct'] / 100.0)
+        self.angulo = angulo
+        self.vivo = True
+        self.tempo_vivo = 0
+        self.trajetoria_x = [self.x]
+        self.trajetoria_y = [self.y]
+        self.voltas_completas = 0
         self.frame_inicio_volta = 0
         self.melhor_tempo_volta = None
-        self.velocidade_total   = 0.0
-        self.pontos_acumulados  = 0.0
-        self.max_afastamento_chegada   = 0.0
-        self.ultima_acao       = np.array([0.0, 0.5])
-        self._pts_janela       = deque(maxlen=CONFIG['penalidades']['janela_perda_continua'])
+        self.velocidade_total = 0.0
+        self.pontos_acumulados = 0.0
+        self.max_afastamento_chegada = 0.0
+        self.ultima_acao = np.array([0.0, 0.5])
+        self._pts_janela = deque(maxlen=CONFIG['penalidades']['janela_perda_continua'])
         self._pts_frame_inicio = 0.0
-        self.cl_checkpoint     = 0
+        self.cl_checkpoint = 0
         self.frames_checkpoint = int(np.random.randint(
             0, CONFIG['simulacao']['frames_sem_progresso']))
-        self.max_cl_index          = 0
+        self.max_cl_index = 0
         self.cl_index_inicio_volta = 0
-        self.eventos               = deque(maxlen=10)
-        self.estado_frame          = {}
-        self.motivo_morte          = None
+        self.eventos = deque(maxlen=10)
+        self.estado_frame = {}
+        self.motivo_morte = None
 
     def get_sensores(self, pista_config=None):
-        """8 sensores: -90,-45,-22.5,0,+22.5,+45,+90 graus + velocidade.
-        Totalmente vetorizado via SDF."""
-        _OFFSETS = np.array([-90., -45., -22.5, 0., 22.5, 45., 90.], dtype=np.float32)
-        rads  = np.radians(self.angulo + _OFFSETS)
+        """Retorna 8 valores: distâncias dos 7 sensores (normalizadas) + velocidade normalizada."""
+        rads = np.radians(self.angulo + self._SENSOR_OFFSETS)
         dists = np.arange(0.2, 15.0, 0.2, dtype=np.float32)
 
         sx = np.float32(self.x) + np.cos(rads)[:, None] * dists
@@ -318,134 +297,136 @@ class CarrinhoIA:
 
         dentro = _multiponto_dentro_pista(sx.ravel(), sy.ravel()).reshape(7, 74)
 
-        result  = np.full(7, 15.0, dtype=np.float32)
-        fora    = ~dentro
+        result = np.full(7, 15.0, dtype=np.float32)
+        fora = ~dentro
         tem_hit = fora.any(axis=1)
         if tem_hit.any():
-            idx_hit         = np.argmax(fora, axis=1)
+            idx_hit = np.argmax(fora, axis=1)
             result[tem_hit] = dists[idx_hit[tem_hit]]
 
         vel_norm = self.velocidade / CONFIG['carros']['velocidade_max']
         return np.append(result / 15.0, vel_norm)
 
     def mover(self, acao):
-        """Move o carrinho baseado na ação da rede neural."""
         if not self.vivo:
             return
-
         prev_x, prev_y = self.x, self.y
+        self._aplicar_fisica(acao)
+        self._verificar_volta(prev_x, prev_y)
+        self._pontuacao_velocidade()
+        self._verificar_perda_continua()
 
+    def _aplicar_fisica(self, acao):
+        """Atualiza ângulo, velocidade e posição do carro."""
         self.angulo += acao[0] * CONFIG['carros']['angulo_virada_max']
         vmax  = CONFIG['carros']['velocidade_max']
         passo = CONFIG['carros']['passo_velocidade']
 
-        gas = float(acao[1])
-        if gas >= 0.5:
+        if float(acao[1]) >= 0.5:
             self.velocidade = min(vmax, self.velocidade + passo)
         else:
             self.velocidade = max(0.0, self.velocidade - passo)
 
-        rad    = np.radians(self.angulo)
+        rad = np.radians(self.angulo)
         self.x += self.velocidade * np.cos(rad)
         self.y += self.velocidade * np.sin(rad)
-
-        # Detecta cruzamento da linha de chegada
-        if cruza_linha_chegada(prev_x, prev_y, self.x, self.y):
-            _progresso_minimo = len(_CENTERLINE) * CONFIG['deteccao_volta']['fracao_minima_volta']
-            _progresso_real   = self.max_cl_index - self.cl_index_inicio_volta
-            if (self.max_afastamento_chegada >= CONFIG['deteccao_volta']['afastamento_minimo_da_chegada']
-                    and _progresso_real >= _progresso_minimo):
-                tempo_desta_volta = self.tempo_vivo - self.frame_inicio_volta
-                eh_recorde        = (self.melhor_tempo_volta is None
-                                     or tempo_desta_volta < self.melhor_tempo_volta)
-                melhoria_frames   = ((self.melhor_tempo_volta - tempo_desta_volta)
-                                     if (eh_recorde and self.melhor_tempo_volta is not None) else 0)
-                if eh_recorde:
-                    self.melhor_tempo_volta = tempo_desta_volta
-
-                self.frame_inicio_volta        = self.tempo_vivo
-                self.voltas_completas         += 1
-                self.max_afastamento_chegada   = 0.0
-                self.cl_index_inicio_volta     = self.max_cl_index
-                self.cl_checkpoint             = self.max_cl_index
-                self.frames_checkpoint         = 0
-
-                rec = CONFIG['recompensas']
-                self.pontos_acumulados += rec['recompensa_volta']
-                self.eventos.append((f"+{rec['recompensa_volta']:.0f} LAP!", _COR['verde']))
-                self.estado_frame['volta'] = True
-
-                target    = rec['target_frames_volta']
-                bonus_vel = rec['bonus_volta_rapida'] * target / max(tempo_desta_volta, 1)
-                self.pontos_acumulados += bonus_vel
-                self.eventos.append((f'+{bonus_vel:.0f} spd ({tempo_desta_volta}fr)', _COR['verde']))
-
-                if melhoria_frames > 0:
-                    antigo_tempo = tempo_desta_volta + melhoria_frames
-                    melhoria_pct = melhoria_frames / antigo_tempo
-                    bonus_rec    = (rec['recompensa_volta']
-                                    * melhoria_pct
-                                    * self.voltas_completas
-                                    * rec['fator_bonus_recorde'])
-                    self.pontos_acumulados += bonus_rec
-                    self.eventos.append((f'+{bonus_rec:.0f} RECORD!', _COR['amarelo']))
 
         self.trajetoria_x.append(self.x)
         self.trajetoria_y.append(self.y)
         self.velocidade_total += self.velocidade
         self.tempo_vivo       += 1
 
-        # Atualiza max_afastamento_chegada
-        lc           = CONFIG['linha_chegada']
-        dist_chegada = np.sqrt((self.x - lc['x'])**2 + (self.y - lc['y'])**2)
-        if dist_chegada > self.max_afastamento_chegada:
-            self.max_afastamento_chegada = dist_chegada
+        # Distância máxima da chegada — necessária para validar que houve uma volta completa
+        lc = CONFIG['linha_chegada']
+        dist = np.sqrt((self.x - lc['x'])**2 + (self.y - lc['y'])**2)
+        if dist > self.max_afastamento_chegada:
+            self.max_afastamento_chegada = dist
 
-        # Sistema de velocidade com limiar dinâmico
-        rec  = CONFIG['recompensas']
-        pen  = CONFIG['penalidades']
-        vmax = CONFIG['carros']['velocidade_max']
-        vel_norm = self.velocidade / vmax
+    def _verificar_volta(self, prev_x, prev_y):
+        """Detecta cruzamento da linha de chegada e, se válido, registra a volta."""
+        if not cruza_linha_chegada(prev_x, prev_y, self.x, self.y):
+            return
 
+        progresso_minimo = len(_CENTERLINE) * CONFIG['deteccao_volta']['fracao_minima_volta']
+        progresso_real = self.max_cl_index - self.cl_index_inicio_volta
+        if (self.max_afastamento_chegada < CONFIG['deteccao_volta']['afastamento_minimo_da_chegada']
+                or progresso_real < progresso_minimo):
+            return
+
+        tempo = self.tempo_vivo - self.frame_inicio_volta
+        eh_recorde = self.melhor_tempo_volta is None or tempo < self.melhor_tempo_volta
+        melhoria = (self.melhor_tempo_volta - tempo) if (eh_recorde and self.melhor_tempo_volta) else 0
+
+        if eh_recorde:
+            self.melhor_tempo_volta = tempo
+
+        self.frame_inicio_volta = self.tempo_vivo
+        self.voltas_completas += 1
+        self.max_afastamento_chegada = 0.0
+        self.cl_index_inicio_volta = self.max_cl_index
+        self.cl_checkpoint = self.max_cl_index
+        self.frames_checkpoint = 0
+        self.estado_frame['volta'] = True
+
+        rec = CONFIG['recompensas']
+        self.pontos_acumulados += rec['recompensa_volta']
+        self.eventos.append((f"+{rec['recompensa_volta']:.0f} LAP!", _COR['verde']))
+
+        bonus_vel = rec['bonus_volta_rapida'] * rec['target_frames_volta'] / max(tempo, 1)
+        self.pontos_acumulados += bonus_vel
+        self.eventos.append((f'+{bonus_vel:.0f} spd ({tempo}fr)', _COR['verde']))
+
+        if melhoria > 0:
+            antigo = tempo + melhoria
+            bonus_rec = rec['recompensa_volta'] * (melhoria / antigo) * self.voltas_completas * rec['fator_bonus_recorde']
+            self.pontos_acumulados += bonus_rec
+            self.eventos.append((f'+{bonus_rec:.0f} RECORD!', _COR['amarelo']))
+
+    def _pontuacao_velocidade(self):
+        """Recompensa ou penaliza conforme a velocidade relativa ao limiar da volta atual."""
         if self.voltas_completas == 0:
-            pts_vel    = 0.0
-            limiar_dev = 0.0
-        else:
-            peso_dev   = pen['peso_devagar_pos_volta'] + (self.voltas_completas - 1) * pen['agravante_por_volta']
-            limiar_dev = min(0.9, pen['limiar_devagar_inicial']
-                            + (self.voltas_completas - 1) * pen['incremento_limiar_devagar'])
-            peso_vel   = rec['peso_velocidade'] + (self.voltas_completas - 1) * pen['agravante_por_volta']
-            if vel_norm >= limiar_dev:
-                pts_vel = (vel_norm - limiar_dev) / (1.0 - limiar_dev) * peso_vel
-            else:
-                pts_vel = -((limiar_dev - vel_norm) / limiar_dev) * peso_dev
-
-        self.pontos_acumulados += pts_vel
-
-        if self.voltas_completas > 0 and vel_norm < limiar_dev:
-            self.estado_frame['devagar'] = True
-        else:
             self.estado_frame['rapido'] = True
+            return
 
-        # Kill por perda contínua
+        pen = CONFIG['penalidades']
+        rec = CONFIG['recompensas']
+        vel_norm = self.velocidade / CONFIG['carros']['velocidade_max']
+        voltas = self.voltas_completas
+
+        limiar = min(0.9, pen['limiar_devagar_inicial'] + (voltas - 1) * pen['incremento_limiar_devagar'])
+        peso_vel = rec['peso_velocidade']        + (voltas - 1) * pen['agravante_por_volta']
+        peso_dev = pen['peso_devagar_pos_volta'] + (voltas - 1) * pen['agravante_por_volta']
+
+        if vel_norm >= limiar:
+            pts = (vel_norm - limiar) / (1.0 - limiar) * peso_vel
+            self.estado_frame['rapido'] = True
+        else:
+            pts = -((limiar - vel_norm) / limiar) * peso_dev
+            self.estado_frame['devagar'] = True
+
+        self.pontos_acumulados += pts
+
+    def _verificar_perda_continua(self):
+        """Elimina o carro se a pontuação cair continuamente por muitos frames seguidos."""
         self._pts_janela.append(self.pontos_acumulados)
-        if (self.tempo_vivo > self._pts_janela.maxlen
-                and len(self._pts_janela) == self._pts_janela.maxlen):
-            perda_janela = self._pts_janela[-1] - self._pts_janela[0]
-            limiar_perda = (CONFIG['penalidades']['perda_continua_limiar_pre_volta']
-                            if self.voltas_completas == 0
-                            else CONFIG['penalidades']['perda_continua_limiar_pos_volta'])
-            score_minimo = CONFIG['penalidades']['score_minimo_kill']
-            if perda_janela < limiar_perda and self.pontos_acumulados < score_minimo:
-                self.vivo         = False
-                self.motivo_morte = 'Continuous point loss'
-                self.eventos.append(('-mort Cont. loss', _COR['vermelho']))
+        if (self.tempo_vivo <= self._pts_janela.maxlen
+                or len(self._pts_janela) < self._pts_janela.maxlen):
+            return
+
+        perda = self._pts_janela[-1] - self._pts_janela[0]
+        pen = CONFIG['penalidades']
+        limiar = (pen['perda_continua_limiar_pre_volta'] if self.voltas_completas == 0
+                  else pen['perda_continua_limiar_pos_volta'])
+
+        if perda < limiar and self.pontos_acumulados < pen['score_minimo_kill']:
+            self.vivo = False
+            self.motivo_morte = 'Continuous point loss'
+            self.eventos.append(('-mort Cont. loss', _COR['vermelho']))
 
     def checar_colisao(self, pista_config=None):
-        """Verifica se saiu da pista."""
         if not ponto_dentro_pista(self.x, self.y):
-            self.vivo              = False
-            self.motivo_morte      = 'Off track'
+            self.vivo = False
+            self.motivo_morte = 'Off track'
             self.pontos_acumulados -= CONFIG['penalidades']['penalidade_colisao']
             self.eventos.append(('CRASH!', _COR['vermelho']))
             return True

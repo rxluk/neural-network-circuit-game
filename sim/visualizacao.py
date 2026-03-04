@@ -1,7 +1,5 @@
-"""
-Visualization layer — all matplotlib rendering.
-SimuladorAprendizado extends SimuladorBase with figure setup and real-time drawing.
-"""
+# Camada de visualização — toda a renderização via matplotlib.
+# SimuladorAprendizado estende SimuladorBase com a janela e o loop em tempo real.
 
 import time
 import numpy as np
@@ -28,52 +26,48 @@ class SimuladorAprendizado(SimuladorBase):
         super().__init__()
 
         # UI state
-        self._bg                  = None
-        self._bg_refresh_pending  = False
-        self._frame_count         = 0
-        self._notificacoes        = []
-        self._melhor_idx_ant      = None
-        self._help_visible        = False
-        self._log_decisoes        = []
-        self._MAX_LOG             = 13
-        self._acao_atual          = np.array([0.0, 0.5])
+        self._bg = None
+        self._bg_refresh_pending = False
+        self._frame_count = 0
+        self._notificacoes = []
+        self._melhor_idx_ant = None
+        self._help_visible = False
+        self._log_decisoes = []
+        self._MAX_LOG = 13
+        self._acao_atual = np.array([0.0, 0.5])
 
         # Figure layout
         self.fig = plt.figure(figsize=(16, 11), facecolor=_COR['cor_card'])
-        gs       = self.fig.add_gridspec(2, 1, height_ratios=[2.5, 1], hspace=0.12)
+        gs = self.fig.add_gridspec(2, 1, height_ratios=[2.5, 1], hspace=0.12)
         self.ax_pista = self.fig.add_subplot(gs[0])
 
-        _c  = CONFIG.get('cards', {})
-        _wr = [
-            _c['size_grafico'],
-            _c['size_info'],
-            _c['size_comandos'],
-            _c['size_eventos'],
-            _c['size_rede_neural'],
+        c = CONFIG.get('cards', {})
+        wr = [
+            c['size_grafico'],
+            c['size_info'],
+            c['size_comandos'],
+            c['size_eventos'],
+            c['size_rede_neural'],
         ]
         gs_cards = self.fig.add_gridspec(
-            1, 5, width_ratios=_wr, wspace=_c['wspace'],
+            1, 5, width_ratios=wr, wspace=c['wspace'],
             left=0.03, right=0.99, top=0.305, bottom=0.08,
         )
-        self.ax_stats   = self.fig.add_subplot(gs_cards[0])
-        self.ax_info    = self.fig.add_subplot(gs_cards[1])
-        self.ax_log     = self.fig.add_subplot(gs_cards[2])
+        self.ax_stats = self.fig.add_subplot(gs_cards[0])
+        self.ax_info = self.fig.add_subplot(gs_cards[1])
+        self.ax_log = self.fig.add_subplot(gs_cards[2])
         self.ax_eventos = self.fig.add_subplot(gs_cards[3])
-        self.ax_rede    = self.fig.add_subplot(gs_cards[4])
+        self.ax_rede = self.fig.add_subplot(gs_cards[4])
 
-        # Pre-computa geometria da pista
         self._precomputar_geometria_pista()
 
-        # Eventos da janela
-        self.fig.canvas.mpl_connect('key_press_event',    self.on_key_press)
-        self.fig.canvas.mpl_connect('close_event',        self.on_close)
+        self.fig.canvas.mpl_connect('key_press_event', self.on_key_press)
+        self.fig.canvas.mpl_connect('close_event', self.on_close)
         self.fig.canvas.mpl_connect('button_press_event', self.on_mouse_click)
 
         self.iniciar_tentativa()
 
-    # ------------------------------------------------------------------
     # Eventos de janela
-    # ------------------------------------------------------------------
 
     def on_key_press(self, event):
         if event.key == 'q':
@@ -89,21 +83,19 @@ class SimuladorAprendizado(SimuladorBase):
         """Detecta clique no botão ? e abre/fecha o overlay de ajuda."""
         if event.inaxes != self.ax_pista:
             return
-        ax   = self.ax_pista
+        ax = self.ax_pista
         disp = ax.transAxes.transform([[0.008, 0.022], [0.030, 0.054]])
         x0, y0 = disp[0]
         x1, y1 = disp[1]
         if x0 <= event.x <= x1 and y0 <= event.y <= y1:
             self._help_visible = not self._help_visible
 
-    # ------------------------------------------------------------------
-    # Geometria pré-computada
-    # ------------------------------------------------------------------
+    # Geometria da pista pré-computada (executado uma única vez)
 
     def _precomputar_geometria_pista(self):
         """Calcula contornos, compound path e zebras (executa uma única vez)."""
         ext_x, ext_y, int_x, int_y = gerar_contornos_pista()
-        N, M  = len(ext_x), len(int_x)
+        N, M = len(ext_x), len(int_x)
         outer = np.column_stack([ext_x, ext_y])
         inner = np.column_stack([int_x[::-1], int_y[::-1]])
         verts = np.concatenate([outer, outer[0:1], inner, inner[0:1]])
@@ -126,9 +118,9 @@ class SimuladorAprendizado(SimuladorBase):
     def _calcular_zebras(self, cfg, cores):
         x_centro = cfg['x'];   y_centro = cfg['y']
         largura  = cfg['largura'];  altura  = cfg['altura']
-        angulo   = cfg['angulo'];   n       = cfg['num_zebras']
-        w_zebra  = largura / n;     x_start = x_centro - largura / 2
-        zebras   = []
+        angulo = cfg['angulo'];  n = cfg['num_zebras']
+        w_zebra = largura / n;  x_start = x_centro - largura / 2
+        zebras = []
         for i in range(n):
             zebras.append(dict(
                 xy=(x_start + i * w_zebra, y_centro - altura / 2),
@@ -138,9 +130,7 @@ class SimuladorAprendizado(SimuladorBase):
             ))
         return zebras
 
-    # ------------------------------------------------------------------
-    # Fundo estático (pista + painéis)
-    # ------------------------------------------------------------------
+    # Fundo estático (pista + painéis). Salvo em self._bg para blit.
 
     def _preparar_fundo(self):
         """Desenha elementos estáticos e salva o background para blit."""
@@ -182,9 +172,7 @@ class SimuladorAprendizado(SimuladorBase):
         self.fig.canvas.draw()
         self._bg = self.fig.canvas.copy_from_bbox(self.fig.bbox)
 
-    # ------------------------------------------------------------------
-    # Painéis estáticos
-    # ------------------------------------------------------------------
+    # Painéis estáticos (gráfico de evolução + cards)
 
     def _desenhar_stats(self):
         """Gráfico de evolução + cards de informação (chamado no fundo estático)."""
@@ -200,9 +188,9 @@ class SimuladorAprendizado(SimuladorBase):
                      color=_COR['texto_secundario'], pad=4)
 
         x_title = 0.08
-        pop     = CONFIG['simulacao']['populacao']
-        voltas  = CONFIG['simulacao']['voltas_objetivo']
-        stag    = self.gens_sem_melhora
+        pop = CONFIG['simulacao']['populacao']
+        voltas = CONFIG['simulacao']['voltas_objetivo']
+        stag = self.gens_sem_melhora
         mut_pct = f'{self.taxa_mutacao_atual*100:.0f}%  [{self.modo_mutacao}]'
         avg_laps = f'{self.avg_laps_gen:.2f}'
         stag_cor = (_COR['verde']   if stag < 5  else
@@ -263,9 +251,9 @@ class SimuladorAprendizado(SimuladorBase):
             spine.set_edgecolor(_COR['cinza_medio'])
         ax.tick_params(colors=_COR['texto_terciario'], labelsize=7.5)
         if self.historico_melhor:
-            total  = len(self.historico_melhor)
+            total = len(self.historico_melhor)
             inicio = max(0, total - _JANELA)
-            gens   = list(range(inicio, total))
+            gens = list(range(inicio, total))
             ax.plot(gens, self.historico_melhor[inicio:], label='Best',
                     color=_COR['cor_melhor'], linewidth=3)
             ax.plot(gens, self.historico_media[inicio:],  label='Average',
@@ -314,15 +302,13 @@ class SimuladorAprendizado(SimuladorBase):
         ar.set_title('Neural Network', fontsize=9, fontweight='bold',
                      color=_COR['texto_secundario'], pad=4)
 
-    # ------------------------------------------------------------------
     # Visualização da rede neural (blit)
-    # ------------------------------------------------------------------
 
     def _desenhar_rede_neural(self, melhor_idx):
         an = self.ax_rede
         if melhor_idx is None:
             return
-        carr    = self.carrinhos[melhor_idx]
+        carr = self.carrinhos[melhor_idx]
         cerebro = self.cerebros[melhor_idx]
 
         s  = np.clip(getattr(carr, '_cached_sensores', np.zeros(8)), 0.0, 1.0)
@@ -380,7 +366,7 @@ class SimuladorAprendizado(SimuladorBase):
             an.add_collection(lc); an.draw_artist(lc); lc.remove()
 
         # Input nodes
-        c_in    = _mc.to_rgba(_COR['cor_normal'])
+        c_in = _mc.to_rgba(_COR['cor_normal'])
         in_rgba = [(c_in[0], c_in[1], c_in[2], 0.20 + float(v)*0.80) for v in s]
         sc = an.scatter([x_in]*8, in_ys, s=28, c=in_rgba, edgecolors='none',
                         transform=an.transAxes, zorder=5, clip_on=False)
@@ -401,15 +387,15 @@ class SimuladorAprendizado(SimuladorBase):
         an.draw_artist(sc); sc.remove()
 
         # Output nodes
-        steer   = float((a2[0] - 0.5) * 2.0)
-        gas_v   = float(a2[1])
+        steer = float((a2[0] - 0.5) * 2.0)
+        gas_v = float(a2[1])
         esq_int = max(0.0, -steer)
         dir_int = max(0.0,  steer)
         fre_int = max(0.0, (0.5 - gas_v) * 2.0)
         gas_int = max(0.0, (gas_v - 0.5) * 2.0)
-        c_ama   = _mc.to_rgba(_COR['amarelo'])
-        c_ver   = _mc.to_rgba(_COR['verde'])
-        c_vrm   = _mc.to_rgba(_COR['vermelho'])
+        c_ama = _mc.to_rgba(_COR['amarelo'])
+        c_ver = _mc.to_rgba(_COR['verde'])
+        c_vrm = _mc.to_rgba(_COR['vermelho'])
         sc_cols = [
             (c_ama[0], c_ama[1], c_ama[2], 0.25 + max(esq_int, dir_int)*0.75),
             (c_ver[0]*gas_int + c_vrm[0]*fre_int,
@@ -436,7 +422,7 @@ class SimuladorAprendizado(SimuladorBase):
             (out_ys[1], 'BRK', c_vrm, fre_int, 0.02),
         ]:
             alpha = 0.25 + intensity * 0.75
-            fw    = 'bold' if intensity > 0.3 else 'normal'
+            fw = 'bold' if intensity > 0.3 else 'normal'
             t = an.text(x_out+0.13, y_no+dy, lbl, transform=an.transAxes,
                         fontsize=5.5, fontweight=fw,
                         color=(rgba[0], rgba[1], rgba[2], alpha),
@@ -453,15 +439,13 @@ class SimuladorAprendizado(SimuladorBase):
                          va='center', ha='left', zorder=6)
             an.draw_artist(tv); tv.remove()
 
-    # ------------------------------------------------------------------
     # Carrinho individual (blit)
-    # ------------------------------------------------------------------
 
     def _desenhar_carrinho_blit(self, carrinho, cor, alpha):
         ax = self.ax_pista
         if carrinho.vivo:
             tamanho = CONFIG['carros']['tamanho']
-            rad     = np.radians(carrinho.angulo)
+            rad = np.radians(carrinho.angulo)
             dx  = tamanho * np.cos(rad)
             dy  = tamanho * np.sin(rad)
             dpx = tamanho * 0.5 * np.cos(rad + np.pi / 2)
@@ -477,7 +461,7 @@ class SimuladorAprendizado(SimuladorBase):
 
             if CONFIG['visualizacao']['mostrar_sensores']:
                 sensores = getattr(carrinho, '_cached_sensores', None) or carrinho.get_sensores()
-                angs     = [carrinho.angulo + a for a in
+                angs = [carrinho.angulo + a for a in
                             [-90, -45, -22.5, 0, 22.5, 45, 90]]
                 for ang, dist, cs in zip(angs, sensores[:7] * 15, _COR['cores_sensores']):
                     r  = np.radians(ang)
@@ -491,25 +475,20 @@ class SimuladorAprendizado(SimuladorBase):
                         markersize=5, markeredgewidth=1, alpha=0.5, linestyle='none')
             ax.add_line(mk); ax.draw_artist(mk); mk.remove()
 
-    # ------------------------------------------------------------------
     # Frame de atualização (chamado pelo timer)
-    # ------------------------------------------------------------------
 
     def atualizar_visualizacao(self):
         if self.parar_animacao:
             return
-
         if self._bg_refresh_pending:
             self._bg_refresh_pending = False
             self._preparar_fundo()
             return
-
         if self.vencedor is not None:
             self._finalizar_treinamento()
             return
 
-        # Simula N passos por frame
-        passos          = CONFIG['simulacao']['passos_por_frame']
+        passos = CONFIG['simulacao']['passos_por_frame']
         tentativa_acabou = False
         for _ in range(passos):
             tentativa_acabou = self.simular_frame()
@@ -526,12 +505,64 @@ class SimuladorAprendizado(SimuladorBase):
         self.fig.canvas.restore_region(self._bg)
 
         fitness_atual = [c.pontos_acumulados for c in self.carrinhos]
-        vivos_mask    = [c.vivo for c in self.carrinhos]
-        vivos         = sum(vivos_mask)
-        ax            = self.ax_pista
-        sz            = CONFIG['carros']['tamanho'] * 0.8
+        vivos_mask = [c.vivo for c in self.carrinhos]
+        vivos = sum(vivos_mask)
+        indices_vivos = [i for i, v in enumerate(vivos_mask) if v]
+        melhor_idx = (max(indices_vivos, key=lambda i: fitness_atual[i])
+                      if indices_vivos else None)
 
-        # Carros mortos
+        # Notificação por morte do melhor carro anterior
+        if (self._melhor_idx_ant is not None
+                and not self.carrinhos[self._melhor_idx_ant].vivo):
+            c = self.carrinhos[self._melhor_idx_ant]
+            self._notificacoes.append((time.time(), c.motivo_morte or 'Eliminated', c.pontos_acumulados))
+            self._notificacoes = self._notificacoes[-1:]
+        self._melhor_idx_ant = melhor_idx
+
+        self._renderizar_carros(melhor_idx, vivos_mask)
+        self._renderizar_overlays(melhor_idx, vivos)
+        self._renderizar_painel_comandos(melhor_idx)
+        self._renderizar_painel_eventos(melhor_idx)
+        self._desenhar_rede_neural(melhor_idx)
+        self.fig.canvas.blit(self.fig.bbox)
+
+    def _desenhar_card_box(self, ax, lines, x, y, align='left',
+                           pad_x=0.010, pad_y=0.010, line_gap=0.032, box_w=0.13):
+        """Desenha um card com fundo arredondado e linhas de texto (blit-safe)."""
+        box_h = pad_y * 2 + len(lines) * line_gap
+        bx = x if align == 'left' else x - box_w
+        by = y - box_h
+        bg = FancyBboxPatch((bx, by), box_w, box_h,
+                               boxstyle='round,pad=0.005',
+                               facecolor=_COR['cor_card'], edgecolor=_COR['cinza_medio'],
+                               linewidth=0.8, alpha=0.88,
+                               transform=ax.transAxes, zorder=19, clip_on=False)
+        ax.add_patch(bg); ax.draw_artist(bg); bg.remove()
+        cur_y = y - pad_y
+        for row in lines:
+            if len(row) == 4:
+                txt, fs, fw, color = row
+                t = ax.text(bx + pad_x, cur_y, txt, transform=ax.transAxes,
+                            fontsize=fs, verticalalignment='top', horizontalalignment='left',
+                            fontweight=fw, color=color, zorder=21, family='monospace')
+                ax.draw_artist(t); t.remove()
+            else:
+                label, valor, fs, fw, cor_label, cor_valor = row
+                tl = ax.text(bx + pad_x, cur_y, label, transform=ax.transAxes,
+                             fontsize=fs, verticalalignment='top', horizontalalignment='left',
+                             fontweight=fw, color=cor_label, zorder=21, family='monospace')
+                ax.draw_artist(tl); tl.remove()
+                tr = ax.text(bx + box_w - pad_x, cur_y, valor, transform=ax.transAxes,
+                             fontsize=fs, verticalalignment='top', horizontalalignment='right',
+                             fontweight='normal', color=cor_valor, zorder=21, family='monospace')
+                ax.draw_artist(tr); tr.remove()
+            cur_y -= line_gap
+
+    def _renderizar_carros(self, melhor_idx, vivos_mask):
+        """Desenha carros mortos (×), carros vivos normais e o melhor carro."""
+        ax = self.ax_pista
+        sz = CONFIG['carros']['tamanho'] * 0.8
+
         dead_xs = [c.x for c, v in zip(self.carrinhos, vivos_mask) if not v]
         dead_ys = [c.y for c, v in zip(self.carrinhos, vivos_mask) if not v]
         if dead_xs:
@@ -541,26 +572,11 @@ class SimuladorAprendizado(SimuladorBase):
                               alpha=0.3, zorder=9)
             ax.draw_artist(scat); scat.remove()
 
-        # Melhor carro vivo
-        indices_vivos = [i for i, v in enumerate(vivos_mask) if v]
-        melhor_idx    = (max(indices_vivos, key=lambda i: fitness_atual[i])
-                         if indices_vivos else None)
-
-        # Notificação de morte do melhor
-        if (self._melhor_idx_ant is not None
-                and not self.carrinhos[self._melhor_idx_ant].vivo):
-            c = self.carrinhos[self._melhor_idx_ant]
-            self._notificacoes.append((time.time(), c.motivo_morte or 'Eliminated',
-                                       c.pontos_acumulados))
-            self._notificacoes = self._notificacoes[-1:]
-        self._melhor_idx_ant = melhor_idx
-
-        # Carros vivos normais (PolyCollection)
         live_verts, live_colors = [], []
         for i, carrinho in enumerate(self.carrinhos):
             if not carrinho.vivo or i == melhor_idx:
                 continue
-            rad   = np.radians(carrinho.angulo)
+            rad = np.radians(carrinho.angulo)
             cos_a, sin_a = np.cos(rad), np.sin(rad)
             dx = sz * cos_a;  dy = sz * sin_a
             px = -sz * 0.5 * sin_a;  py = sz * 0.5 * cos_a
@@ -578,54 +594,20 @@ class SimuladorAprendizado(SimuladorBase):
         if melhor_idx is not None:
             self._desenhar_carrinho_blit(self.carrinhos[melhor_idx], _COR['cor_melhor'], 1.0)
 
-        # --- Cards de info em overlay ---
-        def _draw_card_box(ax, lines, x, y, align='left',
-                           pad_x=0.010, pad_y=0.010, line_gap=0.032, box_w=0.13):
-            n    = len(lines)
-            box_h = pad_y * 2 + n * line_gap
-            bx   = x if align == 'left' else x - box_w
-            by   = y - box_h
-            bg   = FancyBboxPatch((bx, by), box_w, box_h,
-                                  boxstyle='round,pad=0.005',
-                                  facecolor=_COR['cor_card'], edgecolor=_COR['cinza_medio'],
-                                  linewidth=0.8, alpha=0.88,
-                                  transform=ax.transAxes, zorder=19, clip_on=False)
-            ax.add_patch(bg); ax.draw_artist(bg); bg.remove()
-            cur_y = y - pad_y
-            for row in lines:
-                if len(row) == 4:
-                    txt, fs, fw, color = row
-                    t = ax.text(bx + pad_x, cur_y, txt, transform=ax.transAxes,
-                                fontsize=fs, verticalalignment='top',
-                                horizontalalignment='left', fontweight=fw,
-                                color=color, zorder=21, family='monospace')
-                    ax.draw_artist(t); t.remove()
-                else:
-                    label, valor, fs, fw, cor_label, cor_valor = row
-                    tl = ax.text(bx + pad_x, cur_y, label, transform=ax.transAxes,
-                                 fontsize=fs, verticalalignment='top',
-                                 horizontalalignment='left', fontweight=fw,
-                                 color=cor_label, zorder=21, family='monospace')
-                    ax.draw_artist(tl); tl.remove()
-                    tr = ax.text(bx + box_w - pad_x, cur_y, valor, transform=ax.transAxes,
-                                 fontsize=fs, verticalalignment='top',
-                                 horizontalalignment='right', fontweight='normal',
-                                 color=cor_valor, zorder=21, family='monospace')
-                    ax.draw_artist(tr); tr.remove()
-                cur_y -= line_gap
+    def _renderizar_overlays(self, melhor_idx, vivos):
+        """Desenha os cards de geração/melhor carro, botão de ajuda e notificações."""
+        ax = self.ax_pista
 
-        # Card geração (esquerda)
         record_str = (f'{self.record_global_volta} fr / Gen. {self.record_global_volta_geracao}'
                       if self.record_global_volta else '---')
-        _draw_card_box(ax, [
+        self._desenhar_card_box(ax, [
             (f'GEN. {self.geracao + 1}',               11, 'bold',   _COR['texto_principal']),
             (f'Alive  {vivos}/{self.populacao_size}',    9, 'normal', _COR['texto_secundario']),
             (f'Record: {record_str}',                   9, 'normal', _COR['verde']),
         ], x=0.008, y=0.988, align='left', box_w=0.13)
 
-        # Card melhor carro (direita)
         if melhor_idx is not None:
-            melhor    = self.carrinhos[melhor_idx]
+            melhor = self.carrinhos[melhor_idx]
             volta_str = f'{melhor.melhor_tempo_volta} fr' if melhor.melhor_tempo_volta else '---'
             fr_atual  = melhor.tempo_vivo - melhor.frame_inicio_volta
             if melhor.melhor_tempo_volta and fr_atual < melhor.melhor_tempo_volta:
@@ -634,39 +616,38 @@ class SimuladorAprendizado(SimuladorBase):
                 cor_fr = _COR['amarelo']
             else:
                 cor_fr = _COR['texto_secundario']
-            _draw_card_box(ax, [
-                ('BEST ALIVE',                                                                9, 'bold',   _COR['texto_principal']),
-                ('Score',   f'{melhor.pontos_acumulados:.0f} pts',                           9, 'bold',   _COR['texto_secundario'], _COR['texto_principal']),
+            self._desenhar_card_box(ax, [
+                ('BEST ALIVE',                                                                    9, 'bold',   _COR['texto_principal']),
+                ('Score',   f'{melhor.pontos_acumulados:.0f} pts',                               9, 'bold',   _COR['texto_secundario'], _COR['texto_principal']),
                 ('Laps',    f'{melhor.voltas_completas}/{CONFIG["simulacao"]["voltas_objetivo"]}', 9, 'normal', _COR['texto_secundario'], _COR['texto_secundario']),
-                ('Lap fr',  f'{fr_atual} fr',                                                9, 'normal', _COR['texto_terciario'],  cor_fr),
-                ('Best fr', volta_str,                                                        9, 'normal', _COR['texto_terciario'],  _COR['verde']),
+                ('Lap fr',  f'{fr_atual} fr',                                                    9, 'normal', _COR['texto_terciario'],   cor_fr),
+                ('Best fr', volta_str,                                                            9, 'normal', _COR['texto_terciario'],   _COR['verde']),
             ], x=0.857, y=0.988, align='left', line_gap=0.028, box_w=0.135)
 
         # Botão ?
-        _hbx, _hby, _hbw, _hbh = 0.008, 0.022, 0.022, 0.032
-        _hbg = FancyBboxPatch((_hbx, _hby), _hbw, _hbh,
-                              boxstyle='round,pad=0.003',
-                              facecolor=_COR['cinza_inativo'], edgecolor=_COR['cinza_medio'],
-                              linewidth=0.7, alpha=0.88,
-                              transform=ax.transAxes, zorder=19, clip_on=False)
-        ax.add_patch(_hbg); ax.draw_artist(_hbg); _hbg.remove()
-        _ht = ax.text(_hbx + _hbw/2, _hby + _hbh/2, '?',
-                      transform=ax.transAxes, fontsize=7, fontweight='bold',
-                      color=_COR['texto_secundario'], ha='center', va='center',
-                      zorder=20, clip_on=False)
-        ax.draw_artist(_ht); _ht.remove()
+        hbx, hby, hbw, hbh = 0.008, 0.022, 0.022, 0.032
+        hbg = FancyBboxPatch((hbx, hby), hbw, hbh,
+                             boxstyle='round,pad=0.003',
+                             facecolor=_COR['cinza_inativo'], edgecolor=_COR['cinza_medio'],
+                             linewidth=0.7, alpha=0.88,
+                             transform=ax.transAxes, zorder=19, clip_on=False)
+        ax.add_patch(hbg); ax.draw_artist(hbg); hbg.remove()
+        ht = ax.text(hbx + hbw/2, hby + hbh/2, '?',
+                     transform=ax.transAxes, fontsize=7, fontweight='bold',
+                     color=_COR['texto_secundario'], ha='center', va='center',
+                     zorder=20, clip_on=False)
+        ax.draw_artist(ht); ht.remove()
 
-        # Overlay de ajuda
         if self._help_visible:
-            _ow, _oh = 0.25, 0.90
-            _ox, _oy = 0.5 - _ow/2, 0.5 - _oh/2
-            _obg = FancyBboxPatch((_ox, _oy), _ow, _oh,
-                                  boxstyle='round,pad=0.006',
-                                  facecolor=_COR['cor_card'], edgecolor=_COR['cinza_medio'],
-                                  linewidth=1.0, alpha=0.96,
-                                  transform=ax.transAxes, zorder=40, clip_on=False)
-            ax.add_patch(_obg); ax.draw_artist(_obg); _obg.remove()
-            _help_lines = [
+            ow, oh = 0.25, 0.90
+            ox, oy = 0.5 - ow/2, 0.5 - oh/2
+            obg = FancyBboxPatch((ox, oy), ow, oh,
+                                 boxstyle='round,pad=0.006',
+                                 facecolor=_COR['cor_card'], edgecolor=_COR['cinza_medio'],
+                                 linewidth=1.0, alpha=0.96,
+                                 transform=ax.transAxes, zorder=40, clip_on=False)
+            ax.add_patch(obg); ax.draw_artist(obg); obg.remove()
+            help_lines = [
                 ('LEGEND & GLOSSARY',                             7.5, 'bold',   _COR['texto_principal']),
                 ('', 3, 'normal', _COR['texto_principal']),
                 ('SIMULATION CARD',                               6,   'bold',   _COR['cinza_medio']),
@@ -691,24 +672,22 @@ class SimuladorAprendizado(SimuladorBase):
                 ('', 3, 'normal', _COR['texto_principal']),
                 ('Click ? to close',                              6,   'normal', _COR['cinza_medio']),
             ]
-            _cy = _oy + _oh - 0.022
-            for _htxt, _hfs, _hfw, _hcol in _help_lines:
-                _t = ax.text(_ox + 0.014, _cy, _htxt, transform=ax.transAxes,
-                             fontsize=_hfs, fontweight=_hfw, color=_hcol,
-                             va='top', ha='left', family='monospace',
-                             zorder=41, clip_on=False)
-                ax.draw_artist(_t); _t.remove()
-                _cy -= (_hfs + 1.0) * 0.0058
+            cy = oy + oh - 0.022
+            for htxt, hfs, hfw, hcol in help_lines:
+                t = ax.text(ox + 0.014, cy, htxt, transform=ax.transAxes,
+                            fontsize=hfs, fontweight=hfw, color=hcol,
+                            va='top', ha='left', family='monospace',
+                            zorder=41, clip_on=False)
+                ax.draw_artist(t); t.remove()
+                cy -= (hfs + 1.0) * 0.0058
 
-        # Notificações de morte do melhor
-        _NOTIF_TTL = 3.0
+        # Notificação flutuante de morte do melhor
+        NOTIF_TTL = 3.0
         now = time.time()
-        self._notificacoes = [(t, m, p) for t, m, p in self._notificacoes
-                              if now - t < _NOTIF_TTL]
+        self._notificacoes = [(t, m, p) for t, m, p in self._notificacoes if now - t < NOTIF_TTL]
         if self._notificacoes:
             nt, nm, np_ = self._notificacoes[-1]
-            age   = max(0.0, now - nt)
-            alpha = max(0.0, min(1.0, 1.0 - age / _NOTIF_TTL))
+            alpha = max(0.0, min(1.0, 1.0 - (now - nt) / NOTIF_TTL))
             if alpha > 0:
                 nx, ny, nw, nh = 0.870, 0.022, 0.120, 0.048
                 nb = FancyBboxPatch((nx, ny), nw, nh,
@@ -735,178 +714,161 @@ class SimuladorAprendizado(SimuladorBase):
                              zorder=21, clip_on=False)
                 ax.draw_artist(tp); tp.remove()
 
-        # --- AI Commands panel ---
+    def _renderizar_painel_comandos(self, melhor_idx):
+        """Painel AI Commands: barras de direção, aceleração e velocidade."""
         melhor_carr = self.carrinhos[melhor_idx] if melhor_idx is not None else self.carrinhos[0]
-        acao_m      = melhor_carr.ultima_acao
-        virar_v     = float(acao_m[0])
-        acel_v      = float(acao_m[1])
-        acel_on     = acel_v >= 0.5
-        freia_on    = not acel_on
-        vel_pct     = melhor_carr.velocidade / CONFIG['carros']['velocidade_max']
-        _acel_cor   = _COR['verde'] if acel_on else _COR['vermelho']
+        acao_m = melhor_carr.ultima_acao
+        virar_v = float(acao_m[0])
+        acel_v = float(acao_m[1])
+        acel_on = acel_v >= 0.5
+        vel_pct = melhor_carr.velocidade / CONFIG['carros']['velocidade_max']
+        acel_cor = _COR['verde'] if acel_on else _COR['vermelho']
         al = self.ax_log
 
-        # Steering bar
+        # Steering
         lbl_s = al.text(0.5, 8.8, 'STEERING', va='top', ha='left',
-                        fontsize=6.5, color=_COR['texto_terciario'],
-                        family='monospace', zorder=6)
+                        fontsize=6.5, color=_COR['texto_terciario'], family='monospace', zorder=6)
         al.draw_artist(lbl_s); lbl_s.remove()
-        track_x0, track_x1, track_y, track_h = 0.5, 9.5, 7.6, 0.55
-        track = Rectangle((track_x0, track_y), track_x1 - track_x0, track_h,
+
+        tx0, tx1, ty, th = 0.5, 9.5, 7.6, 0.55
+        track = Rectangle((tx0, ty), tx1 - tx0, th,
                            facecolor=_COR['cinza_inativo'], edgecolor='none', zorder=3)
         al.add_patch(track); al.draw_artist(track); track.remove()
-        for txt, x_pos, ha in [('◀', track_x0 - 0.15, 'right'), ('▶', track_x1 + 0.15, 'left')]:
-            lbl = al.text(x_pos, track_y + track_h/2, txt, va='center', ha=ha,
+
+        for txt, xp, ha in [('◀', tx0 - 0.15, 'right'), ('▶', tx1 + 0.15, 'left')]:
+            lbl = al.text(xp, ty + th/2, txt, va='center', ha=ha,
                           fontsize=5.5, color=_COR['verde'], family='monospace', zorder=6)
             al.draw_artist(lbl); lbl.remove()
-        cx    = (track_x0 + track_x1) / 2
-        cmark = Rectangle((cx - 0.04, track_y), 0.08, track_h,
-                           facecolor=_COR['cinza_medio'], edgecolor='none', zorder=4)
+
+        cx = (tx0 + tx1) / 2
+        cmark = Rectangle((cx - 0.04, ty), 0.08, th, facecolor=_COR['cinza_medio'], edgecolor='none', zorder=4)
         al.add_patch(cmark); al.draw_artist(cmark); cmark.remove()
-        needle_x  = cx + virar_v * (track_x1 - cx)
-        fill_x0   = min(cx, needle_x)
+
+        needle_x = cx + virar_v * (tx1 - cx)
         dir_color = (_COR['cor_normal'] if abs(virar_v) < 0.25 else
                      _COR['amarelo']    if virar_v < 0         else _COR['verde'])
-        dfill = Rectangle((fill_x0, track_y), abs(needle_x - cx), track_h,
+        dfill = Rectangle((min(cx, needle_x), ty), abs(needle_x - cx), th,
                            facecolor=dir_color, alpha=0.85, edgecolor='none', zorder=5)
         al.add_patch(dfill); al.draw_artist(dfill); dfill.remove()
-        needle = Rectangle((needle_x - 0.08, track_y - 0.1), 0.16, track_h + 0.2,
+        needle = Rectangle((needle_x - 0.08, ty - 0.1), 0.16, th + 0.2,
                             facecolor=_COR['branco'], edgecolor='none', zorder=6)
         al.add_patch(needle); al.draw_artist(needle); needle.remove()
+
         lbl_sv = al.text(9.5, 8.8, f'{virar_v:+.2f}', va='top', ha='right',
-                         fontsize=6.5, color=_COR['texto_secundario'],
-                         family='monospace', zorder=6)
+                         fontsize=6.5, color=_COR['texto_secundario'], family='monospace', zorder=6)
         al.draw_artist(lbl_sv); lbl_sv.remove()
 
-        # Throttle bar
+        # Throttle
         lbl_a = al.text(0.5, 6.0, 'THROTTLE', va='top', ha='left',
-                        fontsize=6.5, color=_COR['texto_terciario'],
-                        family='monospace', zorder=6)
+                        fontsize=6.5, color=_COR['texto_terciario'], family='monospace', zorder=6)
         al.draw_artist(lbl_a); lbl_a.remove()
-        atrack = Rectangle((track_x0, 4.85), track_x1 - track_x0, track_h,
-                            facecolor=_COR['cinza_inativo'], edgecolor='none', zorder=3)
+        atrack = Rectangle((tx0, 4.85), tx1 - tx0, th, facecolor=_COR['cinza_inativo'], edgecolor='none', zorder=3)
         al.add_patch(atrack); al.draw_artist(atrack); atrack.remove()
-        afill = Rectangle((track_x0, 4.85), (track_x1 - track_x0) * acel_v, track_h,
-                          facecolor=_acel_cor, alpha=0.85, edgecolor='none', zorder=4)
+        afill = Rectangle((tx0, 4.85), (tx1 - tx0) * acel_v, th,
+                           facecolor=acel_cor, alpha=0.85, edgecolor='none', zorder=4)
         al.add_patch(afill); al.draw_artist(afill); afill.remove()
         lbl_av = al.text(9.5, 6.0, f'{acel_v:.2f}', va='top', ha='right',
-                         fontsize=6.5, color=_COR['texto_secundario'],
-                         family='monospace', zorder=6)
+                         fontsize=6.5, color=_COR['texto_secundario'], family='monospace', zorder=6)
         al.draw_artist(lbl_av); lbl_av.remove()
 
-        # GAS / BRAKE text
-        gas_cor   = _COR['verde']    if acel_on  else _COR['cinza_medio']
-        brake_cor = _COR['vermelho'] if freia_on else _COR['cinza_medio']
-        for txt, x_pos, clr in [('GAS', 2.5, gas_cor), ('BRAKE', 7.5, brake_cor)]:
-            st = al.text(x_pos, 3.5, txt, va='center', ha='center',
-                         fontsize=7.5, color=clr, family='monospace',
-                         fontweight='bold', zorder=6)
+        gas_cor = _COR['verde']    if acel_on      else _COR['cinza_medio']
+        brake_cor = _COR['vermelho'] if not acel_on  else _COR['cinza_medio']
+        for txt, xp, clr in [('GAS', 2.5, gas_cor), ('BRAKE', 7.5, brake_cor)]:
+            st = al.text(xp, 3.5, txt, va='center', ha='center', fontsize=7.5,
+                         color=clr, family='monospace', fontweight='bold', zorder=6)
             al.draw_artist(st); st.remove()
-        sep = al.plot([5.0, 5.0], [3.0, 4.0],
-                      color=_COR['cinza_inativo'], linewidth=0.8, zorder=5)
+        sep = al.plot([5.0, 5.0], [3.0, 4.0], color=_COR['cinza_inativo'], linewidth=0.8, zorder=5)
         for l in sep: al.draw_artist(l); l.remove()
 
-        # Speed bar
-        _pen_spd  = CONFIG['penalidades']
-        _limiar_spd = (0.0 if melhor_carr.voltas_completas == 0 else
-                       min(0.9, _pen_spd['limiar_devagar_inicial']
-                           + (melhor_carr.voltas_completas - 1) * _pen_spd['incremento_limiar_devagar']))
-        bar_color = _COR['vermelho'] if vel_pct < _limiar_spd else _COR['verde']
+        # Speed
+        pen = CONFIG['penalidades']
+        limiar_spd = (0.0 if melhor_carr.voltas_completas == 0 else
+                      min(0.9, pen['limiar_devagar_inicial']
+                          + (melhor_carr.voltas_completas - 1) * pen['incremento_limiar_devagar']))
+        bar_color = _COR['vermelho'] if vel_pct < limiar_spd else _COR['verde']
 
         lbl_spd = al.text(0.5, 1.55, 'SPEED', va='top', ha='left',
-                          fontsize=6.5, color=_COR['texto_terciario'],
-                          family='monospace', zorder=6)
+                          fontsize=6.5, color=_COR['texto_terciario'], family='monospace', zorder=6)
         al.draw_artist(lbl_spd); lbl_spd.remove()
-        lbl_spd_v = al.text(9.5, 1.55,
-                            f'{vel_pct*100:.0f}%  ({melhor_carr.velocidade:.2f})',
+        lbl_spd_v = al.text(9.5, 1.55, f'{vel_pct*100:.0f}%  ({melhor_carr.velocidade:.2f})',
                             va='top', ha='right', fontsize=6.5,
                             color=_COR['texto_secundario'], family='monospace', zorder=6)
         al.draw_artist(lbl_spd_v); lbl_spd_v.remove()
-        bg_bar = Rectangle((0.5, 0.3), 9.0, 0.65,
-                            color=_COR['cinza_inativo'], zorder=3)
-        al.add_patch(bg_bar); al.draw_artist(bg_bar); bg_bar.remove()
-        fill_bar = Rectangle((0.5, 0.3), 9.0 * vel_pct, 0.65,
-                             color=bar_color, alpha=0.9, zorder=4)
-        al.add_patch(fill_bar); al.draw_artist(fill_bar); fill_bar.remove()
-        if _limiar_spd > 0.0:
-            marker_x = 0.5 + 9.0 * _limiar_spd
+        bg_bar = Rectangle((0.5, 0.3), 9.0, 0.65, color=_COR['cinza_inativo'], zorder=3)
+        fill_bar = Rectangle((0.5, 0.3), 9.0 * vel_pct, 0.65, color=bar_color, alpha=0.9, zorder=4)
+        for p in (bg_bar, fill_bar): al.add_patch(p); al.draw_artist(p); p.remove()
+        if limiar_spd > 0.0:
+            marker_x = 0.5 + 9.0 * limiar_spd
             mk = al.plot([marker_x, marker_x], [0.25, 1.05],
                          color=_COR['vermelho'], linewidth=1.2, zorder=5, alpha=0.8)
             for l in mk: al.draw_artist(l); l.remove()
 
-        # --- Events panel ---
+    def _renderizar_painel_eventos(self, melhor_idx):
+        """Painel Events: linhas de status de velocidade, volta, parede, contramão e lentidão."""
         ae = self.ax_eventos
-        if melhor_idx is not None:
-            ef          = self.carrinhos[melhor_idx].estado_frame
-            _rec        = CONFIG['recompensas']
-            _pen        = CONFIG['penalidades']
-            _mc_car     = self.carrinhos[melhor_idx]
-            _pre_lap    = (_mc_car.voltas_completas == 0)
+        if melhor_idx is None:
+            return
 
-            if _pre_lap:
-                _peso_dev = 0.0;  _peso_vel = _rec['peso_velocidade'];  _limiar_dev = 0.0
-            else:
-                _peso_dev   = _pen['peso_devagar_pos_volta'] + (_mc_car.voltas_completas - 1) * _pen['agravante_por_volta']
-                _peso_vel   = _rec['peso_velocidade'] + (_mc_car.voltas_completas - 1) * _pen['agravante_por_volta']
-                _limiar_dev = min(0.9, _pen['limiar_devagar_inicial']
-                                  + (_mc_car.voltas_completas - 1) * _pen['incremento_limiar_devagar'])
+        car = self.carrinhos[melhor_idx]
+        ef = car.estado_frame
+        rec = CONFIG['recompensas']
+        pen = CONFIG['penalidades']
+        pre_lap = car.voltas_completas == 0
 
-            _spd_val  = '—'      if _pre_lap else f"+{_peso_vel:.1f}/fr"
-            _spd_cor  = _COR['cinza_medio'] if _pre_lap else _COR['verde']
-            _spd_dsc  = 'locked pre-lap' if _pre_lap else f'above {_limiar_dev*100:.0f}% of max speed'
-            _wall_val = '—'      if _pre_lap else f"−{_pen['penalidade_parede_proxima']:.0f}"
-            _cw_val   = 'FREEZE' if _pre_lap else f"−{_pen['penalidade_contramao']:.0f}"
-            _slow_val = '—'      if _pre_lap else f"−{_peso_dev:.1f}/fr"
-            _wall_cor = _COR['cinza_medio'] if _pre_lap else _COR['vermelho']
-            _cw_cor   = _COR['amarelo']     if _pre_lap else _COR['vermelho']
-            _slow_cor = _COR['cinza_medio'] if _pre_lap else _COR['amarelo']
+        if pre_lap:
+            peso_dev = 0.0
+            peso_vel = rec['peso_velocidade']
+            limiar   = 0.0
+        else:
+            v = car.voltas_completas
+            peso_dev = pen['peso_devagar_pos_volta'] + (v - 1) * pen['agravante_por_volta']
+            peso_vel = rec['peso_velocidade']       + (v - 1) * pen['agravante_por_volta']
+            limiar = min(0.9, pen['limiar_devagar_inicial'] + (v - 1) * pen['incremento_limiar_devagar'])
 
-            rows = [
-                ('Speed',     'rapido',    _spd_cor,  _spd_val,                              f'above {_limiar_dev*100:.0f}% of max speed' if not _pre_lap else 'locked pre-lap'),
-                ('Lap Done',  'volta',     _COR['verde'],  f"+{_rec['recompensa_volta']:.0f}", 'completed 1 lap'),
-                ('Wall',      'parede',    _wall_cor, _wall_val,                             'too close to wall' if not _pre_lap else 'locked pre-lap'),
-                ('Wrong way', 'contramao', _cw_cor,   _cw_val,                               'wrong direction'),
-                ('Too slow',  'devagar',   _slow_cor, _slow_val,                             f'below {_limiar_dev*100:.0f}% speed (lap {_mc_car.voltas_completas})' if not _pre_lap else 'locked pre-lap'),
-            ]
+        rows = [
+            ('Speed',     'rapido',    _COR['verde']   if not pre_lap else _COR['cinza_medio'],
+             '—' if pre_lap else f'+{peso_vel:.1f}/fr',
+             'locked pre-lap' if pre_lap else f'above {limiar*100:.0f}% of max speed'),
+            ('Lap Done',  'volta',     _COR['verde'],
+             f"+{rec['recompensa_volta']:.0f}", 'completed 1 lap'),
+            ('Wall',      'parede',    _COR['vermelho'] if not pre_lap else _COR['cinza_medio'],
+             '—' if pre_lap else f"−{pen['penalidade_parede_proxima']:.0f}",
+             'locked pre-lap' if pre_lap else 'too close to wall'),
+            ('Wrong way', 'contramao', _COR['amarelo'] if pre_lap else _COR['vermelho'],
+             'FREEZE' if pre_lap else f"−{pen['penalidade_contramao']:.0f}",
+             'wrong direction'),
+            ('Too slow',  'devagar',   _COR['cinza_medio'] if pre_lap else _COR['amarelo'],
+             '—' if pre_lap else f'−{peso_dev:.1f}/fr',
+             f'below {limiar*100:.0f}% speed (lap {car.voltas_completas})' if not pre_lap else 'locked pre-lap'),
+        ]
 
-            for k, (label, chave, cor_on, val_str, descr) in enumerate(rows):
-                _gated  = _pre_lap and chave in ('rapido', 'parede', 'devagar')
-                ativo   = bool(ef.get(chave)) and not _gated
-                bar_cor = cor_on if ativo else _COR['cinza_inativo']
-                lbl_cor = _COR['texto_principal'] if ativo else _COR['texto_terciario']
-                val_cor = cor_on if ativo else _COR['cinza_medio']
-                dsc_cor = _COR['texto_terciario'] if ativo else _COR['cinza_medio']
-                y_row   = 8.4 - k * 1.7
+        for k, (label, chave, cor_on, val_str, descr) in enumerate(rows):
+            gated   = pre_lap and chave in ('rapido', 'parede', 'devagar')
+            ativo   = bool(ef.get(chave)) and not gated
+            bar_cor = cor_on if ativo else _COR['cinza_inativo']
+            lbl_cor = _COR['texto_principal'] if ativo else _COR['texto_terciario']
+            val_cor = cor_on if ativo else _COR['cinza_medio']
+            dsc_cor = _COR['texto_terciario'] if ativo else _COR['cinza_medio']
+            y_row   = 8.4 - k * 1.7
 
-                bar = Rectangle((0.3, y_row - 0.55), 0.25, 1.25,
-                                 facecolor=bar_cor, edgecolor='none', zorder=4)
-                ae.add_patch(bar); ae.draw_artist(bar); bar.remove()
+            bar = Rectangle((0.3, y_row - 0.55), 0.25, 1.25,
+                             facecolor=bar_cor, edgecolor='none', zorder=4)
+            ae.add_patch(bar); ae.draw_artist(bar); bar.remove()
 
-                sep_ln = ae.plot([0.3, 9.7], [y_row - 0.65, y_row - 0.65],
-                                 color=_COR['cinza_inativo'], linewidth=0.4, zorder=3)
-                for l in sep_ln: ae.draw_artist(l); l.remove()
+            sep = ae.plot([0.3, 9.7], [y_row - 0.65, y_row - 0.65],
+                          color=_COR['cinza_inativo'], linewidth=0.4, zorder=3)
+            for l in sep: ae.draw_artist(l); l.remove()
 
-                tl = ae.text(0.9, y_row + 0.35, label, va='center', ha='left',
-                             fontsize=7.5, color=lbl_cor,
-                             family='monospace', zorder=5)
-                ae.draw_artist(tl); tl.remove()
-
-                td = ae.text(0.9, y_row - 0.15, descr, va='center', ha='left',
-                             fontsize=6.0, color=dsc_cor,
-                             family='monospace', zorder=5)
-                ae.draw_artist(td); td.remove()
-
-                tv = ae.text(9.7, y_row + 0.35, val_str, va='center', ha='right',
-                             fontsize=7.5, color=val_cor, family='monospace',
-                             fontweight='bold' if ativo else 'normal', zorder=5)
-                ae.draw_artist(tv); tv.remove()
-
-        self._desenhar_rede_neural(melhor_idx)
-        self.fig.canvas.blit(self.fig.bbox)
-
-    # ------------------------------------------------------------------
-    # Resultado final
-    # ------------------------------------------------------------------
+            for xpos, txt, color, ha, fw in [
+                (0.9,  label,   lbl_cor, 'left',  'normal'),
+                (0.9,  descr,   dsc_cor, 'left',  'normal'),
+                (9.7,  val_str, val_cor, 'right', 'bold' if ativo else 'normal'),
+            ]:
+                ypos = y_row + 0.35 if txt != descr else y_row - 0.15
+                fs   = 7.5 if txt != descr else 6.0
+                t = ae.text(xpos, ypos, txt, va='center', ha=ha, fontsize=fs,
+                            color=color, family='monospace', fontweight=fw, zorder=5)
+                ae.draw_artist(t); t.remove()
 
     def _mostrar_tela_resultado(self, dados, _caminho):
         ax = self.ax_pista
@@ -945,10 +907,6 @@ class SimuladorAprendizado(SimuladorBase):
         print('='*70)
         caminho, dados = self._salvar_resultados()
         self._mostrar_tela_resultado(dados, caminho)
-
-    # ------------------------------------------------------------------
-    # Loop principal
-    # ------------------------------------------------------------------
 
     def iniciar_animacao(self):
         print("=" * 60)

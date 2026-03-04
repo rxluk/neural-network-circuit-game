@@ -1,8 +1,4 @@
-"""
-AI car learning to drive — entry point.
-Run this file to start the simulation.
-"""
-
+# Ponto de entrada — cria o simulador e inicia a animação.
 from sim.visualizacao import SimuladorAprendizado
 
 if __name__ == "__main__":

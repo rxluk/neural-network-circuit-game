@@ -1,6 +1,8 @@
 # Neural Network Circuit Game
 Neuroevolution simulation where a population of AI-controlled cars learns to drive a custom circuit through a genetic algorithm.
 
+[![Download](https://img.shields.io/github/v/release/luangrezende/neural-network-circuit-game?label=Download%20Windows%20EXE&style=for-the-badge&logo=github&color=2ea043)](https://github.com/luangrezende/neural-network-circuit-game/releases/latest)
+
 ![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python&logoColor=white)
 ![NumPy](https://img.shields.io/badge/NumPy-2.4%2B-blue?logo=numpy&logoColor=white)
 ![Matplotlib](https://img.shields.io/badge/Matplotlib-3.10%2B-green)
@@ -37,15 +39,23 @@ This separation makes it straightforward to run headless training or swap the re
 
 ## Getting Started
 
-### Prerequisites
+### Option 1 — Download the pre-built executable (Windows)
+
+Grab the latest `.zip` from the [Releases page](https://github.com/luangrezende/neural-network-circuit-game/releases/latest), extract it, and run `neural-network-circuit-game.exe`. No Python required.
+
+> The executable is built automatically by GitHub Actions on every version tag using PyInstaller.
+
+### Option 2 — Run from source
+
+#### Prerequisites
 
 - Python 3.11+
 - A CUDA-capable GPU is **not required** (PyTorch is listed for optional use)
 
-### Installation
+#### Installation
 
 ```bash
-git clone https://github.com/<your-user>/neural-network-circuit-game.git
+git clone https://github.com/luangrezende/neural-network-circuit-game.git
 cd neural-network-circuit-game
 python -m venv .venv
 # Windows
@@ -58,13 +68,13 @@ pip install -r requirements.txt
 
 > If you do not need PyTorch, remove the `torch`/`torchvision`/`torchaudio` lines from `requirements.txt` and run `pip install numpy matplotlib`.
 
-### Run the simulation
+#### Run the simulation
 
 ```bash
 python rede_neural_jogo.py
 ```
 
-### Run the track editor
+#### Run the track editor
 
 ```bash
 python editor_pista.py

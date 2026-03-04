@@ -1,14 +1,5 @@
-"""
-Interactive Track Editor
-========================
-Click to add control points and generate the smoothed circuit.
-Export to pista.json to use in the simulator.
-
-Mouse controls:
-  Left click       — add point / drag existing point
-  Right click      — remove nearest point
-"""
-
+# Editor interativo de pista — clique para adicionar pontos, gera spline Catmull-Rom.
+# Exporta pista.json para uso no simulador.
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as pe
@@ -27,13 +18,8 @@ def _carregar_config_editor():
 
 _E_COR = _carregar_config_editor()['cores_ui']
 
-# ---------------------------------------------------------------------------
-# Catmull-Rom (fechado): pts deve ser array de pontos únicos; o script
-# acrescenta pts[0] no final para fechar o loop.
-# ---------------------------------------------------------------------------
-
 def _catmull_rom(pts, n_seg=40):
-    """Suaviza lista de pontos únicos como spline de Catmull-Rom fechado."""
+    # Suaviza lista de pontos únicos como spline de Catmull-Rom fechado.
     closed = np.vstack([pts, pts[0]])   # fecha o circuito
     n = len(closed) - 1
     ts  = np.linspace(0, 1, n_seg, endpoint=False)
@@ -55,12 +41,12 @@ def _catmull_rom(pts, n_seg=40):
     return np.vstack(result)
 
 def _gerar_bordas(centerline, hw):
-    """Gera offset ±hw a partir da centerline fechada."""
+    # Gera offset ±hw a partir da centerline fechada.
     n = len(centerline)
     tx = np.zeros(n); ty = np.zeros(n)
     cl_c = np.vstack([centerline, centerline[0]])
     for i in range(n):
-        d   = cl_c[(i + 1)] - cl_c[(i - 1) % n]
+        d = cl_c[(i + 1)] - cl_c[(i - 1) % n]
         mag = np.hypot(d[0], d[1])
         tx[i], ty[i] = (d / mag) if mag > 1e-12 else (1.0, 0.0)
     ext_x = centerline[:, 0] + hw * ty
@@ -70,13 +56,10 @@ def _gerar_bordas(centerline, hw):
     return ext_x, ext_y, int_x, int_y
 
 def _angulo_seg(p1, p2):
-    """Ângulo em graus do segmento p1→p2."""
     d = p2 - p1
     return float(np.degrees(np.arctan2(d[1], d[0])))
 
-# ---------------------------------------------------------------------------
 # Editor
-# ---------------------------------------------------------------------------
 
 CANVAS_W, CANVAS_H = 50, 35   # espaco de coordenadas disponivel para desenhar
 SNAP_RADIUS = 0.8              # raio para remover ponto com clique direito
@@ -93,7 +76,7 @@ class EditorPista:
         # Carrega ultima pista salva, se existir
         self._carregar_pista_json()
 
-        # --- Figura ---
+        # Figura principal
         self.fig = plt.figure(figsize=(19, 10))
         self.fig.patch.set_facecolor(_E_COR['editor_fundo'])
 
@@ -102,7 +85,7 @@ class EditorPista:
         self.ax = self.fig.add_axes([0.03, _bar_h + 0.01, 0.94, 0.86 - 0.01])
         self._config_canvas()
 
-        # --- Separador ---
+        # Separador visual entre canvas e barra inferior
         ax_sep = self.fig.add_axes([0.0, _bar_h - 0.002, 1.0, 0.002])
         ax_sep.set_facecolor(_E_COR['cinza_inativo'])
         ax_sep.set_axis_off()
@@ -111,7 +94,7 @@ class EditorPista:
         _ey = 0.025          # y base dos elementos
         _eh = 0.075          # altura dos elementos
 
-        # --- Rótulos das seções ---
+        # Rótulos das seções da barra
         _lbl_y = _ey + _eh + 0.004
         self.fig.text(0.03,  _lbl_y, 'TRACK NAME', fontsize=6.5,
                       fontweight='bold', color=_E_COR['texto_secundario'],
@@ -123,7 +106,7 @@ class EditorPista:
                       fontweight='bold', color=_E_COR['texto_secundario'],
                       va='bottom', family='monospace')
 
-        # --- TextBox: nome da pista (compacto) ---
+        # TextBox: nome da pista
         ax_nome = self.fig.add_axes([0.03, _ey, 0.22, _eh])
         self.txt_nome = TextBox(ax_nome, '',
                                 initial=self.nome_pista,
@@ -138,16 +121,16 @@ class EditorPista:
             sp.set_linewidth(1.2)
         self.txt_nome.on_text_change(self._cb_nome_change)
 
-        # --- Botões (compactos) ---
+        # Botões
         _bw = 0.075
         _gap = 0.008
         _bx = 0.285
-        ax_save  = self.fig.add_axes([_bx,              _ey, _bw, _eh])
-        ax_undo  = self.fig.add_axes([_bx + _bw + _gap, _ey, _bw, _eh])
+        ax_save = self.fig.add_axes([_bx,              _ey, _bw, _eh])
+        ax_undo = self.fig.add_axes([_bx + _bw + _gap, _ey, _bw, _eh])
         ax_clear = self.fig.add_axes([_bx + 2*(_bw + _gap), _ey, _bw, _eh])
 
         self.btn_salvar = Button(ax_save,  'SAVE',  color='#2d5c2e', hovercolor=_E_COR['verde'])
-        self.btn_undo   = Button(ax_undo,  'UNDO',  color='#2a3a4a', hovercolor=_E_COR['cinza_medio'])
+        self.btn_undo = Button(ax_undo,  'UNDO',  color='#2a3a4a', hovercolor=_E_COR['cinza_medio'])
         self.btn_limpar = Button(ax_clear, 'CLEAR', color='#5c2d2d', hovercolor=_E_COR['vermelho'])
 
         for btn, lbl_cor in [(self.btn_salvar, _E_COR['verde']),
@@ -161,7 +144,7 @@ class EditorPista:
                 sp.set_edgecolor(_E_COR['cinza_medio'])
                 sp.set_linewidth(1.0)
 
-        # --- Slider de largura ---
+        # Slider de largura
         ax_slider = self.fig.add_axes([0.58, _ey + 0.018, 0.37, 0.035])
         self.slider_larg = Slider(ax_slider, '', 0.5, 5.0,
                                    valinit=self.largura, color=_E_COR['verde'])
@@ -173,7 +156,7 @@ class EditorPista:
         for sp in ax_slider.spines.values():
             sp.set_edgecolor(_E_COR['cinza_medio'])
 
-        # --- Callbacks ---
+        # Callbacks
         self.btn_salvar.on_clicked(self._cb_salvar)
         self.btn_undo.on_clicked(self._cb_undo)
         self.btn_limpar.on_clicked(self._cb_limpar)
@@ -187,7 +170,7 @@ class EditorPista:
         plt.show()
 
     def _cb_key_clipboard(self, event):
-        """Suporte a Ctrl+C / Ctrl+V no TextBox."""
+        # Suporte a Ctrl+C / Ctrl+V no TextBox.
         if not self.txt_nome.active:
             return
         try:
@@ -207,10 +190,8 @@ class EditorPista:
     def _cb_nome_change(self, text):
         self.nome_pista = text.strip() if text.strip() else 'Track 1'
 
-    # ------------------------------------------------------------------
-    # Callbacks de widgets
     def _carregar_pista_json(self):
-        """Carrega pista.json se existir, restaurando pontos e largura."""
+        # Carrega pista.json se existir, restaurando pontos e largura.
         if not os.path.exists(PISTA_JSON_PATH):
             return
         try:
@@ -229,7 +210,6 @@ class EditorPista:
         except Exception as e:
             print(f'[editor] Warning: could not load pista.json: {e}')
 
-    # ------------------------------------------------------------------
     def _config_canvas(self):
         ax = self.ax
         ax.set_xlim(-1, CANVAS_W + 1)
@@ -243,8 +223,6 @@ class EditorPista:
         for spine in ax.spines.values():
             spine.set_edgecolor(_E_COR['texto_secundario'])
 
-    # ------------------------------------------------------------------
-    # Callbacks de widgets
     def _cb_largura(self, val):
         self.largura = float(val)
         self._atualizar()
@@ -258,7 +236,6 @@ class EditorPista:
         self.pontos.clear()
         self._atualizar()
 
-    # ------------------------------------------------------------------
     # Mouse
     def _cb_mouse_press(self, event):
         if event.inaxes != self.ax:
@@ -293,7 +270,7 @@ class EditorPista:
         self._arrastar_idx = None
 
     def _ponto_proximo(self, x, y):
-        """Retorna índice do ponto de controle mais próximo ou None."""
+        # Retorna índice do ponto de controle mais próximo ou None.
         if not self.pontos:
             return None
         pts = np.array(self.pontos)
@@ -303,7 +280,6 @@ class EditorPista:
             return idx
         return None
 
-    # ------------------------------------------------------------------
     def _atualizar(self):
         ax = self.ax
         ax.clear()
@@ -368,19 +344,19 @@ class EditorPista:
         # Encontra ponto da centerline mais próximo do mid pt0→pt1 e usa sua tangente
         mid = (pts_arr[0] + pts_arr[1]) / 2.0
         dists_cl = np.hypot(cl[:, 0] - mid[0], cl[:, 1] - mid[1])
-        idx_cl   = int(np.argmin(dists_cl))
+        idx_cl = int(np.argmin(dists_cl))
         # Tangente na centerline (usando pontos vizinhos)
-        prev_cl  = cl[(idx_cl - 1) % len(cl)]
-        next_cl  = cl[(idx_cl + 1) % len(cl)]
-        tang_cl  = next_cl - prev_cl
+        prev_cl = cl[(idx_cl - 1) % len(cl)]
+        next_cl = cl[(idx_cl + 1) % len(cl)]
+        tang_cl = next_cl - prev_cl
         ang_carro = float(np.degrees(np.arctan2(tang_cl[1], tang_cl[0])))
         ang_linha = ang_carro + 90.0
-        cl_mid    = cl[idx_cl]   # ponto exato na centerline
-        n_zebras  = 14
-        w_zebra   = (2 * hw) / n_zebras
-        zebra_h   = w_zebra * 1.2
-        x_start   = cl_mid[0] - hw
-        y_start   = cl_mid[1] - zebra_h / 2
+        cl_mid = cl[idx_cl]
+        n_zebras = 14
+        w_zebra = (2 * hw) / n_zebras
+        zebra_h = w_zebra * 1.2
+        x_start = cl_mid[0] - hw
+        y_start = cl_mid[1] - zebra_h / 2
         for i in range(n_zebras):
             cor = _E_COR['branco'] if i % 2 == 0 else _E_COR['preto']
             t = Affine2D().rotate_deg_around(cl_mid[0], cl_mid[1], ang_linha) + ax.transData
@@ -422,7 +398,6 @@ class EditorPista:
 
         self.fig.canvas.draw_idle()
 
-    # ------------------------------------------------------------------
     def _cb_salvar(self, _=None):
         n = len(self.pontos)
         if n < 3:
@@ -430,23 +405,23 @@ class EditorPista:
             return
 
         pts_arr = np.array(self.pontos)
-        cl  = _catmull_rom(pts_arr)
-        hw  = self.largura / 2.0
+        cl = _catmull_rom(pts_arr)
+        hw = self.largura / 2.0
 
         # Garante que o array exportado fecha o circuito (último == primeiro)
         pontos_fechados = pts_arr.tolist()
         pontos_fechados.append(pontos_fechados[0])
 
         # Tangente real da centerline no ponto mais próximo do mid pt0→pt1
-        mid_raw  = (pts_arr[0] + pts_arr[1]) / 2.0
+        mid_raw = (pts_arr[0] + pts_arr[1]) / 2.0
         dists_cl = np.hypot(cl[:, 0] - mid_raw[0], cl[:, 1] - mid_raw[1])
-        idx_cl   = int(np.argmin(dists_cl))
-        prev_cl  = cl[(idx_cl - 1) % len(cl)]
-        next_cl  = cl[(idx_cl + 1) % len(cl)]
-        tang_cl  = next_cl - prev_cl
-        mid      = cl[idx_cl]
+        idx_cl = int(np.argmin(dists_cl))
+        prev_cl = cl[(idx_cl - 1) % len(cl)]
+        next_cl = cl[(idx_cl + 1) % len(cl)]
+        tang_cl = next_cl - prev_cl
+        mid = cl[idx_cl]
         ang_carro = float(np.degrees(np.arctan2(tang_cl[1], tang_cl[0])))
-        ang_linha  = ang_carro + 90.0
+        ang_linha = ang_carro + 90.0
 
         pista_json = {
             'nome': self.nome_pista,
