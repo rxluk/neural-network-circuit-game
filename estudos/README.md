@@ -21,6 +21,9 @@ Objetivo final:
 - [python/language/03_arquivos_configuracao_e_debug.md](./python/language/03_arquivos_configuracao_e_debug.md)
 - [python/language/04_ambientes_dependencias_e_execucao.md](./python/language/04_ambientes_dependencias_e_execucao.md)
 - [python/language/05_testes_qualidade_e_evolucao_de_codigo.md](./python/language/05_testes_qualidade_e_evolucao_de_codigo.md)
+- [python/language/06_excecoes_e_context_manager.md](./python/language/06_excecoes_e_context_manager.md)
+- [python/language/07_comparacao_java_php_para_python.md](./python/language/07_comparacao_java_php_para_python.md)
+- [python/language/08_slicing_generators_e_functools.md](./python/language/08_slicing_generators_e_functools.md)
 
 ### Trilha 2: Bibliotecas Python usadas aqui
 
